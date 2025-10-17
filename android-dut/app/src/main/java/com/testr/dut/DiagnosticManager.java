@@ -50,7 +50,8 @@ public class DiagnosticManager {
             // Health
             b.status = i.getIntExtra(BatteryManager.EXTRA_STATUS,-1);
             // Voltage (mV)
-            b.health = i.getIntExtra(BatteryManager.EXTRA_VOLTAGE,-1);
+            b.voltageMv = i.getIntExtra(BatteryManager.EXTRA_VOLTAGE,-1);
+            b.health = i.getIntExtra(BatteryManager.EXTRA_HEALTH,-1);
             // Temperature in tenths of a degree C (e.g., 320 => 32.0°C)
             b.temperatureTenthsC = i.getIntExtra(BatteryManager.EXTRA_TEMPERATURE,-1);
         } else{
