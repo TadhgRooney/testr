@@ -3,21 +3,23 @@ package com.testr.dut;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.os.BatteryManager;
 import android.os.Build;
 
 import com.testr.dut.dto.BatteryInfo;
+import com.testr.dut.dto.CameraInfo;
 import com.testr.dut.dto.DiagnosticReport;
 
 public class DiagnosticManager {
     private final Context appContext;
 
-    public DiagnosticManager(Context context){
+    public DiagnosticManager(Context context) {
         this.appContext = context.getApplicationContext();
     }
 
     //Collect all diagnostics supported
-    public DiagnosticReport collectAll(String sessionId){
+    public DiagnosticReport collectAll(String sessionId) {
         DiagnosticReport diagnosticReport = new DiagnosticReport();
         diagnosticReport.sessionId = sessionId;
         diagnosticReport.collectedAtEpochMs = System.currentTimeMillis();
@@ -29,32 +31,32 @@ public class DiagnosticManager {
         diagnosticReport.securityPatch = Build.VERSION.SECURITY_PATCH;
 
         diagnosticReport.battery = collectBattery();
+        diagnosticReport.cameras = collectCamera();
 
         return diagnosticReport;
     }
 
-    private BatteryInfo collectBattery(){
+    private BatteryInfo collectBattery() {
         IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        Intent i = appContext.registerReceiver(null,filter);
+        Intent i = appContext.registerReceiver(null, filter);
 
         BatteryInfo b = new BatteryInfo();
 
         BatteryManager bm = (BatteryManager) appContext.getSystemService(Context.BATTERY_SERVICE);
-        if (bm!=null){
+        if (bm != null) {
             int pct = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
             b.levelPct = pct;
-        } else{
+        } else {
             b.levelPct = -1;
         }
-        if(i !=null){
-            // Health
-            b.status = i.getIntExtra(BatteryManager.EXTRA_STATUS,-1);
+        if (i != null) {
+            b.status = i.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
             // Voltage (mV)
-            b.voltageMv = i.getIntExtra(BatteryManager.EXTRA_VOLTAGE,-1);
-            b.health = i.getIntExtra(BatteryManager.EXTRA_HEALTH,-1);
+            b.voltageMv = i.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
+            b.health = i.getIntExtra(BatteryManager.EXTRA_HEALTH, -1);
             // Temperature in tenths of a degree C (e.g., 320 => 32.0°C)
-            b.temperatureTenthsC = i.getIntExtra(BatteryManager.EXTRA_TEMPERATURE,-1);
-        } else{
+            b.temperatureTenthsC = i.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
+        } else {
             //if null, keep sentinel values
             b.status = -1;
             b.health = -1;
@@ -63,5 +65,23 @@ public class DiagnosticManager {
         }
 
         return b;
+    }
+
+    private CameraInfo collectCamera() {
+
+        //Create a new camera
+        CameraInfo cameraInfo = new CameraInfo();
+
+        PackageManager pm = appContext.getPackageManager();
+
+        boolean any = pm.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY);
+        boolean front = pm.hasSystemFeature(PackageManager.FEATURE_CAMERA_FRONT);
+        boolean back = pm.hasSystemFeature(PackageManager.FEATURE_CAMERA);
+
+        cameraInfo.hasFront = front;
+        cameraInfo.hasAnyCamera = any;
+        cameraInfo.hasBack = back;
+
+        return cameraInfo;
     }
 }
