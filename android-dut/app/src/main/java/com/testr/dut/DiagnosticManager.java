@@ -1,6 +1,7 @@
 package com.testr.dut;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
@@ -21,6 +22,7 @@ import com.testr.dut.dto.BatteryInfo;
 import com.testr.dut.dto.CameraInfo;
 import com.testr.dut.dto.ConnectivityInfo;
 import com.testr.dut.dto.DiagnosticReport;
+import com.testr.dut.dto.MemoryCpuInfo;
 
 public class DiagnosticManager {
     private final Context appContext;
@@ -44,6 +46,8 @@ public class DiagnosticManager {
         diagnosticReport.battery = collectBattery();
         diagnosticReport.cameras = collectCamera();
         diagnosticReport.connectivity = collectConnectivity(appContext);
+        diagnosticReport.memoryCpu = collectMemoryInfo();
+
 
         return diagnosticReport;
     }
@@ -252,5 +256,33 @@ public class DiagnosticManager {
             default:
                 return "UNKNOWN";
         }
+    }
+
+    public MemoryCpuInfo collectMemoryInfo(){
+        MemoryCpuInfo out = new MemoryCpuInfo();
+
+        ActivityManager am = (ActivityManager) appContext.getSystemService(Context.ACTIVITY_SERVICE);
+        if(am == null){
+            out.totalRamBytes = -1;
+            out.availRamBytes = -1;
+            out.thresholdBytes = -1;
+            out.lowMemory = false;
+            out.appMemoryClassMb = -1;
+            out.appLargeMemoryClassMb = -1;
+            return out;
+        }
+
+        ActivityManager.MemoryInfo sys = new ActivityManager.MemoryInfo();
+        am.getMemoryInfo(sys);
+
+        out.totalRamBytes = sys.totalMem;
+        out.availRamBytes = sys.availMem;
+        out.thresholdBytes = sys.threshold;
+        out.lowMemory = sys.lowMemory;
+
+        out.appMemoryClassMb = am.getMemoryClass();
+        out.appLargeMemoryClassMb = am.getLargeMemoryClass();
+
+        return out;
     }
 }
