@@ -1,8 +1,12 @@
 package com.testr.dut.dto;
 
 public class StorageInfo {
-    public long totalBytes;
-    public long availableBytes;
-    public double sequentialWriteMBps;
-    public double sequentialReadMBps;
+    //Bytes
+    public long internalTotalBytes;
+    public long internalFreeBytes;
+    public long externalTotalBytes;
+    public long externalFreeBytes;
+
+    public double writeSpeedMBps;
+    public double readSpeedMBps;
 }

@@ -15,6 +15,8 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.os.Looper;
+import android.os.StatFs;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 
@@ -23,6 +25,14 @@ import com.testr.dut.dto.CameraInfo;
 import com.testr.dut.dto.ConnectivityInfo;
 import com.testr.dut.dto.DiagnosticReport;
 import com.testr.dut.dto.MemoryCpuInfo;
+import com.testr.dut.dto.StorageInfo;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class DiagnosticManager {
     private final Context appContext;
@@ -47,6 +57,7 @@ public class DiagnosticManager {
         diagnosticReport.cameras = collectCamera();
         diagnosticReport.connectivity = collectConnectivity(appContext);
         diagnosticReport.memoryCpu = collectMemoryInfo();
+        diagnosticReport.storage = collectStorageInfo();
 
 
         return diagnosticReport;
@@ -283,6 +294,94 @@ public class DiagnosticManager {
         out.appMemoryClassMb = am.getMemoryClass();
         out.appLargeMemoryClassMb = am.getLargeMemoryClass();
 
+        return out;
+    }
+
+    private StorageInfo collectStorageInfo(){
+        StorageInfo out = new StorageInfo();
+        // Internal stats
+        try {
+            File internalDir = appContext.getFilesDir();
+            StatFs s = new StatFs(internalDir.getAbsolutePath());
+            long blk = s.getBlockSizeLong();
+            out.internalTotalBytes = s.getBlockCountLong() * blk;
+            out.internalFreeBytes  = s.getAvailableBlocksLong() * blk;
+        } catch (Throwable t) {
+            out.internalTotalBytes = -1;
+            out.internalFreeBytes  = -1;
+        }
+
+        // External (app-specific) stats
+        try {
+            File ext = appContext.getExternalFilesDir(null);
+            if (ext != null) {
+                StatFs s = new StatFs(ext.getAbsolutePath());
+                long blk = s.getBlockSizeLong();
+                out.externalTotalBytes = s.getBlockCountLong() * blk;
+                out.externalFreeBytes  = s.getAvailableBlocksLong() * blk;
+            } else {
+                out.externalTotalBytes = 0;
+                out.externalFreeBytes  = 0;
+            }
+        } catch (Throwable t) {
+            out.externalTotalBytes = -1;
+            out.externalFreeBytes  = -1;
+        }
+
+        // If on the main thread, skip I/O benchmark to avoid ANR
+        boolean isMainThread = (Looper.myLooper() == Looper.getMainLooper());
+        if (isMainThread) {
+            out.writeSpeedMBps = -1;
+            out.readSpeedMBps  = -1;
+            return out;
+        }
+
+        // I/O micro-benchmark (cache dir), sized to available space and short duration
+        File cache = appContext.getCacheDir();
+        File testFile = new File(cache, "testr_io_probe.bin");
+
+        try {
+            StatFs cs = new StatFs(cache.getAbsolutePath());
+            long freeBytes = cs.getAvailableBlocksLong() * cs.getBlockSizeLong();
+
+            final int ONE_MB = 1024 * 1024;
+            // Aim for ~8 MB, but cap at 1/16 of free space and min 2 MB
+            int targetMB = 8;
+            long capByFree = Math.max(2, Math.min(targetMB, (int)(freeBytes / ONE_MB / 16)));
+            int TEST_MB = (int) capByFree;
+
+            byte[] buf = new byte[ONE_MB];
+            new java.util.Random().nextBytes(buf);
+
+            // Write
+            long start = System.nanoTime();
+            long written = 0;
+            try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(testFile))) {
+                for (int i = 0; i < TEST_MB; i++) {
+                    bos.write(buf);
+                    written += buf.length;
+                }
+                bos.flush();
+            }
+            double wSecs = (System.nanoTime() - start) / 1_000_000_000.0;
+            out.writeSpeedMBps = (written / (1024.0 * 1024.0)) / Math.max(wSecs, 1e-6);
+
+            // Read
+            long read = 0;
+            start = System.nanoTime();
+            try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(testFile))) {
+                int n;
+                while ((n = bis.read(buf)) != -1) read += n;
+            }
+            double rSecs = (System.nanoTime() - start) / 1_000_000_000.0;
+            out.readSpeedMBps = (read / (1024.0 * 1024.0)) / Math.max(rSecs, 1e-6);
+        } catch (Throwable t) {
+            out.writeSpeedMBps = -1;
+            out.readSpeedMBps  = -1;
+        } finally {
+
+            testFile.delete();
+        }
         return out;
     }
 }
