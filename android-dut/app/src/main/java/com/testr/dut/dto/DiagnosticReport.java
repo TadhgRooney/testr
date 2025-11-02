@@ -12,7 +12,7 @@ public class DiagnosticReport {
     public BatteryInfo battery;
     public StorageInfo storage;
     public MemoryCpuInfo memoryCpu;
-    public List<SensorInfo> sensors;
+    public SensorInfo sensors;
     public ConnectivityInfo connectivity;
     public CameraInfo cameras;
     public long collectedAtEpochMs;

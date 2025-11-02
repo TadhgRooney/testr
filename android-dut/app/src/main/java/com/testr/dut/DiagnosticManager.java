@@ -8,6 +8,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -25,6 +27,7 @@ import com.testr.dut.dto.CameraInfo;
 import com.testr.dut.dto.ConnectivityInfo;
 import com.testr.dut.dto.DiagnosticReport;
 import com.testr.dut.dto.MemoryCpuInfo;
+import com.testr.dut.dto.SensorInfo;
 import com.testr.dut.dto.StorageInfo;
 
 import java.io.BufferedInputStream;
@@ -58,6 +61,7 @@ public class DiagnosticManager {
         diagnosticReport.connectivity = collectConnectivity(appContext);
         diagnosticReport.memoryCpu = collectMemoryInfo();
         diagnosticReport.storage = collectStorageInfo();
+        diagnosticReport.sensors = collectSensorInfo();
 
 
         return diagnosticReport;
@@ -382,6 +386,28 @@ public class DiagnosticManager {
 
             testFile.delete();
         }
+        return out;
+    }
+
+    private SensorInfo collectSensorInfo(){
+        SensorInfo out = new SensorInfo();
+
+        SensorManager sm = (SensorManager) appContext.getSystemService(Context.SENSOR_SERVICE);
+        if (sm != null){
+            out.hasAccelerometer =  (sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null);
+            out.hasGyroscope     = (sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null);
+            out.hasMagnetometer  = (sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null);
+            out.hasProximity     = (sm.getDefaultSensor(Sensor.TYPE_PROXIMITY) != null);
+            out.hasLight         = (sm.getDefaultSensor(Sensor.TYPE_LIGHT) != null);
+            out.hasBarometer     = (sm.getDefaultSensor(Sensor.TYPE_PRESSURE) != null);
+            out.hasStepCounter   = (sm.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) != null);
+            out.hasHeartRate     = (sm.getDefaultSensor(Sensor.TYPE_HEART_RATE) != null);
+        }
+        try {
+            out.hasFingerprint = appContext.getPackageManager()
+                    .hasSystemFeature(PackageManager.FEATURE_FINGERPRINT);
+        } catch (Throwable ignored) { }
+
         return out;
     }
 }

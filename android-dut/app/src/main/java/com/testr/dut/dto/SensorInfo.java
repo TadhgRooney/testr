@@ -1,8 +1,13 @@
 package com.testr.dut.dto;
 
 public class SensorInfo {
-    public String name;
-    public int type;
-    public String vendor;
-    public String statusNote;
+    public boolean hasAccelerometer;
+    public boolean hasGyroscope;
+    public boolean hasMagnetometer;
+    public boolean hasProximity;
+    public boolean hasBarometer;
+    public boolean hasStepCounter;
+    public boolean hasHeartRate;
+    public boolean hasLight;
+    public boolean hasFingerprint;
 }
