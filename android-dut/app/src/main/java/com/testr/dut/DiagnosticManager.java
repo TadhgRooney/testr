@@ -332,7 +332,7 @@ public class DiagnosticManager {
             out.externalFreeBytes  = -1;
         }
 
-        // If on the main thread, skip I/O benchmark to avoid ANR
+
         boolean isMainThread = (Looper.myLooper() == Looper.getMainLooper());
         if (isMainThread) {
             out.writeSpeedMBps = -1;
@@ -340,7 +340,7 @@ public class DiagnosticManager {
             return out;
         }
 
-        // I/O micro-benchmark (cache dir), sized to available space and short duration
+
         File cache = appContext.getCacheDir();
         File testFile = new File(cache, "testr_io_probe.bin");
 
@@ -349,7 +349,7 @@ public class DiagnosticManager {
             long freeBytes = cs.getAvailableBlocksLong() * cs.getBlockSizeLong();
 
             final int ONE_MB = 1024 * 1024;
-            // Aim for ~8 MB, but cap at 1/16 of free space and min 2 MB
+
             int targetMB = 8;
             long capByFree = Math.max(2, Math.min(targetMB, (int)(freeBytes / ONE_MB / 16)));
             int TEST_MB = (int) capByFree;
