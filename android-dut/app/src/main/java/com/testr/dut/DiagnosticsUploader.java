@@ -52,7 +52,7 @@ public class DiagnosticsUploader {
 
         // basics
         payload.deviceModel   = report.model;
-        payload.batteryHealth = (report.battery != null) ? report.battery.levelPct : -1;
+        payload.batteryHealth = (report.battery != null) ? report.battery.healthPct : -1;
 
         // --- STORAGE ---
         if (report.storage != null) {
