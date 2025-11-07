@@ -32,9 +32,12 @@ import com.testr.dut.dto.StorageInfo;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class DiagnosticManager {
@@ -67,35 +70,62 @@ public class DiagnosticManager {
         return diagnosticReport;
     }
 
-    private BatteryInfo collectBattery() {
-        IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        Intent i = appContext.registerReceiver(null, filter);
+    public BatteryInfo collectBattery() {
+       int health  = readBatteryHealthPctFromSysfs();
+       return new BatteryInfo(health);
+    }
 
-        BatteryInfo b = new BatteryInfo();
+    private int readBatteryHealthPctFromSysfs(){
+        String basePath = "/sys/class/power_supply/battery/";
+        File fullFile = new File(basePath + "charge_full");
+        File designFile = new File(basePath + "charge_full_design");
 
-        BatteryManager bm = (BatteryManager) appContext.getSystemService(Context.BATTERY_SERVICE);
-        if (bm != null) {
-            int pct = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
-            b.levelPct = pct;
-        } else {
-            b.levelPct = -1;
+        long full = readLong(fullFile);
+        long design = readLong(designFile);
+
+        if(full > 0 && design > 0){
+            float pct = (full * 100f) / design;
+
+            if(pct < 0){
+                pct = 0;
+            } else if(pct > 100){
+                pct = 100;
+            }
+
+            return Math.round(pct);
+
         }
-        if (i != null) {
-            b.status = i.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-            // Voltage (mV)
-            b.voltageMv = i.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
-            b.health = i.getIntExtra(BatteryManager.EXTRA_HEALTH, -1);
-            // Temperature in tenths of a degree C (e.g., 320 => 32.0°C)
-            b.temperatureTenthsC = i.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
-        } else {
-            //if null, keep sentinel values
-            b.status = -1;
-            b.health = -1;
-            b.voltageMv = -1;
-            b.temperatureTenthsC = -1;
+        return -1; //If battery cannot be read
+    }
+
+    private long readLong(File file){
+        if(file == null || !file.exists() || !file.canRead()){
+            return -1;
         }
 
-        return b;
+        BufferedReader br = null;
+        try{
+            br = new BufferedReader(new FileReader(file));
+            String line = br.readLine();
+            if(line == null){
+                return -1;
+            }
+
+            line = line.trim();
+
+            if(line.isEmpty()){
+                return -1;
+            }
+            return Long.parseLong(line);
+        } catch (Exception e) {
+            return -1;
+        } finally {
+            if(br != null){
+                try{
+                    br.close();
+                } catch (IOException ignored) {}
+            }
+        }
     }
 
     private CameraInfo collectCamera() {
