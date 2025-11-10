@@ -12,21 +12,21 @@ public class DiagnosticRun {
 
     private String deviceModel;
     private int batteryHealth;
-    private double storageFreeGb;
-    private double storageTotalGb;
-    private double ramFreeGb;
-    private double ramTotalGb;
+    private int storageSpeedPct;
+    private int cpuPerformancePct;
+    private int ramHealthPct;
+
+
     private LocalDateTime timestamp = LocalDateTime.now();
 
     public DiagnosticRun() {}
 
-    public DiagnosticRun(String deviceModel, int batteryHealth, double storageFreeGb, double storageTotalGb, double ramFreeGb, double ramTotalGb) {
+    public DiagnosticRun(String deviceModel, int batteryHealth, int storageSpeedPct, int cpuPerformancePct, int ramHealthPct) {
         this.deviceModel = deviceModel;
         this.batteryHealth = batteryHealth;
-        this.storageFreeGb = storageFreeGb;
-        this.storageTotalGb = storageTotalGb;
-        this.ramFreeGb = ramFreeGb;
-        this.ramTotalGb = ramTotalGb;
+        this.storageSpeedPct = storageSpeedPct;
+        this.cpuPerformancePct = cpuPerformancePct;
+        this.ramHealthPct = ramHealthPct;
     }
 
     // Getters and setters
@@ -36,18 +36,6 @@ public class DiagnosticRun {
 
     public int getBatteryHealth() { return batteryHealth; }
     public void setBatteryHealth(int batteryHealth) { this.batteryHealth = batteryHealth; }
-
-    public double getStorageFreeGb() { return storageFreeGb; }
-    public void setStorageFreeGb(double storageFreeGb) { this.storageFreeGb = storageFreeGb; }
-
-    public double getStorageTotalGb() { return storageTotalGb; }
-    public void setStorageTotalGb(double storageTotalGb) { this.storageTotalGb = storageTotalGb; }
-
-    public double getRamFreeGb() { return ramFreeGb; }
-    public void setRamFreeGb(double ramFreeGb) { this.ramFreeGb = ramFreeGb; }
-
-    public double getRamTotalGb() { return ramTotalGb; }
-    public void setRamTotalGb(double ramTotalGb) { this.ramTotalGb = ramTotalGb; }
 
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }

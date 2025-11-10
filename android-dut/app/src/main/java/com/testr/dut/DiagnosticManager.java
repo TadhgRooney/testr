@@ -5,8 +5,6 @@ import android.app.ActivityManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
@@ -15,30 +13,24 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
-import android.os.BatteryManager;
 import android.os.Build;
-import android.os.Looper;
-import android.os.StatFs;
-import android.provider.Settings;
 import android.telephony.TelephonyManager;
 
 import com.testr.dut.dto.BatteryInfo;
 import com.testr.dut.dto.CameraInfo;
 import com.testr.dut.dto.ConnectivityInfo;
 import com.testr.dut.dto.DiagnosticReport;
-import com.testr.dut.dto.MemoryCpuInfo;
+import com.testr.dut.dto.CpuInfo;
+import com.testr.dut.dto.RamInfo;
 import com.testr.dut.dto.SensorInfo;
 import com.testr.dut.dto.StorageInfo;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class DiagnosticManager {
     private final Context appContext;
@@ -62,7 +54,8 @@ public class DiagnosticManager {
         diagnosticReport.battery = collectBattery();
         diagnosticReport.cameras = collectCamera();
         diagnosticReport.connectivity = collectConnectivity(appContext);
-        diagnosticReport.memoryCpu = collectMemoryInfo();
+        diagnosticReport.cpu = collectCpuInfo();
+        diagnosticReport.ram = collectRamInfo();
         diagnosticReport.storage = collectStorageInfo();
         diagnosticReport.sensors = collectSensorInfo();
 
@@ -72,30 +65,38 @@ public class DiagnosticManager {
 
     public BatteryInfo collectBattery() {
        int health  = readBatteryHealthPctFromSysfs();
+        android.util.Log.d("TestrBattery", "Battery healthPct = " + health);
        return new BatteryInfo(health);
     }
 
     private int readBatteryHealthPctFromSysfs(){
-        String basePath = "/sys/class/power_supply/battery/";
-        File fullFile = new File(basePath + "charge_full");
-        File designFile = new File(basePath + "charge_full_design");
-
-        long full = readLong(fullFile);
-        long design = readLong(designFile);
-
-        if(full > 0 && design > 0){
-            float pct = (full * 100f) / design;
-
-            if(pct < 0){
-                pct = 0;
-            } else if(pct > 100){
-                pct = 100;
-            }
-
-            return Math.round(pct);
-
+        File powerSupplyDir = new File("/sys/class/power_supply");
+        if (!powerSupplyDir.exists() || !powerSupplyDir.isDirectory()) {
+            return -1;
         }
-        return -1; //If battery cannot be read
+
+        File[] entries = powerSupplyDir.listFiles();
+        if (entries == null) {
+            return -1;
+        }
+
+        for (File entry : entries) {
+            File fullFile = new File(entry, "charge_full");
+            File designFile = new File(entry, "charge_full_design");
+
+            long full = readLong(fullFile);
+            long design = readLong(designFile);
+
+            if (full > 0 && design > 0) {
+                float pct = (full * 100f) / design;
+                if (pct < 0) pct = 0;
+                if (pct > 100) pct = 100;
+                return Math.round(pct);
+            }
+        }
+
+
+        return -1; //Cannot get battery health
     }
 
     private long readLong(File file){
@@ -303,120 +304,153 @@ public class DiagnosticManager {
         }
     }
 
-    public MemoryCpuInfo collectMemoryInfo(){
-        MemoryCpuInfo out = new MemoryCpuInfo();
-
-        ActivityManager am = (ActivityManager) appContext.getSystemService(Context.ACTIVITY_SERVICE);
-        if(am == null){
-            out.totalRamBytes = -1;
-            out.availRamBytes = -1;
-            out.thresholdBytes = -1;
-            out.lowMemory = false;
-            out.appMemoryClassMb = -1;
-            out.appLargeMemoryClassMb = -1;
-            return out;
-        }
-
-        ActivityManager.MemoryInfo sys = new ActivityManager.MemoryInfo();
-        am.getMemoryInfo(sys);
-
-        out.totalRamBytes = sys.totalMem;
-        out.availRamBytes = sys.availMem;
-        out.thresholdBytes = sys.threshold;
-        out.lowMemory = sys.lowMemory;
-
-        out.appMemoryClassMb = am.getMemoryClass();
-        out.appLargeMemoryClassMb = am.getLargeMemoryClass();
-
-        return out;
+    public CpuInfo collectCpuInfo() {
+        int pct = runCpuBenchmark();
+        android.util.Log.d("TestrCPU", "CPU performancePct = " + pct);
+        return new CpuInfo(pct);
     }
 
+    private int runCpuBenchmark() {
+        final long testDurationNs = 1_000_000_000L; // 1 second
+
+        long start = System.nanoTime();
+        long now;
+        long iterations = 0;
+
+        double x = 1.0;
+
+        do {
+            x = Math.sin(x) + Math.cos(x);
+            iterations++;
+            now = System.nanoTime();
+        } while (now - start < testDurationNs);
+
+        if (iterations <= 0) {
+            return -1;
+        }
+
+        return computeCpuPerformancePct(iterations);
+    }
+
+    private int computeCpuPerformancePct(long iterations) {
+        // Baseline iterations for a "healthy" reference device in 1 second.
+        final long baselineIterations = 5_000_000L;
+
+        double ratio = (double) iterations / (double) baselineIterations;
+
+
+        if (ratio > 1.0) ratio = 1.0;
+        if (ratio < 0.0) ratio = 0.0;
+
+        int pct = (int) Math.round(ratio * 100.0);
+        return pct;
+    }
+
+
+
     private StorageInfo collectStorageInfo(){
-        StorageInfo out = new StorageInfo();
-        // Internal stats
-        try {
-            File internalDir = appContext.getFilesDir();
-            StatFs s = new StatFs(internalDir.getAbsolutePath());
-            long blk = s.getBlockSizeLong();
-            out.internalTotalBytes = s.getBlockCountLong() * blk;
-            out.internalFreeBytes  = s.getAvailableBlocksLong() * blk;
-        } catch (Throwable t) {
-            out.internalTotalBytes = -1;
-            out.internalFreeBytes  = -1;
-        }
+        int pct = runStorageSpeedTest();
+        android.util.Log.d("TestrStorage", "Storage speedPct = " + pct);
+        return new StorageInfo(pct);
+    }
 
-        // External (app-specific) stats
-        try {
-            File ext = appContext.getExternalFilesDir(null);
-            if (ext != null) {
-                StatFs s = new StatFs(ext.getAbsolutePath());
-                long blk = s.getBlockSizeLong();
-                out.externalTotalBytes = s.getBlockCountLong() * blk;
-                out.externalFreeBytes  = s.getAvailableBlocksLong() * blk;
-            } else {
-                out.externalTotalBytes = 0;
-                out.externalFreeBytes  = 0;
+    private int runStorageSpeedTest() {
+        File dir = appContext.getCacheDir();
+        File testFile = new File(dir, "testr_storage_test.bin");
+
+        final int sizeMb = 32;
+        byte[] buffer = new byte[1024 * 1024]; // 1MB
+
+        long writeStart = System.nanoTime();
+        try (FileOutputStream fos = new FileOutputStream(testFile)) {
+            for (int i = 0; i < sizeMb; i++) {
+                fos.write(buffer);
             }
-        } catch (Throwable t) {
-            out.externalTotalBytes = -1;
-            out.externalFreeBytes  = -1;
+            fos.getFD().sync();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return -1;
         }
+        long writeEnd = System.nanoTime();
 
-
-        boolean isMainThread = (Looper.myLooper() == Looper.getMainLooper());
-        if (isMainThread) {
-            out.writeSpeedMBps = -1;
-            out.readSpeedMBps  = -1;
-            return out;
-        }
-
-
-        File cache = appContext.getCacheDir();
-        File testFile = new File(cache, "testr_io_probe.bin");
-
-        try {
-            StatFs cs = new StatFs(cache.getAbsolutePath());
-            long freeBytes = cs.getAvailableBlocksLong() * cs.getBlockSizeLong();
-
-            final int ONE_MB = 1024 * 1024;
-
-            int targetMB = 8;
-            long capByFree = Math.max(2, Math.min(targetMB, (int)(freeBytes / ONE_MB / 16)));
-            int TEST_MB = (int) capByFree;
-
-            byte[] buf = new byte[ONE_MB];
-            new java.util.Random().nextBytes(buf);
-
-            // Write
-            long start = System.nanoTime();
-            long written = 0;
-            try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(testFile))) {
-                for (int i = 0; i < TEST_MB; i++) {
-                    bos.write(buf);
-                    written += buf.length;
-                }
-                bos.flush();
+        long readStart = System.nanoTime();
+        try (FileInputStream fis = new FileInputStream(testFile)) {
+            while (fis.read(buffer) != -1) {
+                // just read
             }
-            double wSecs = (System.nanoTime() - start) / 1_000_000_000.0;
-            out.writeSpeedMBps = (written / (1024.0 * 1024.0)) / Math.max(wSecs, 1e-6);
-
-            // Read
-            long read = 0;
-            start = System.nanoTime();
-            try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(testFile))) {
-                int n;
-                while ((n = bis.read(buf)) != -1) read += n;
-            }
-            double rSecs = (System.nanoTime() - start) / 1_000_000_000.0;
-            out.readSpeedMBps = (read / (1024.0 * 1024.0)) / Math.max(rSecs, 1e-6);
-        } catch (Throwable t) {
-            out.writeSpeedMBps = -1;
-            out.readSpeedMBps  = -1;
-        } finally {
-
+        } catch (IOException e) {
+            e.printStackTrace();
             testFile.delete();
+            return -1;
         }
-        return out;
+        long readEnd = System.nanoTime();
+
+        testFile.delete();
+
+        double writeSeconds = (writeEnd - writeStart) / 1_000_000_000.0;
+        double readSeconds  = (readEnd - readStart)  / 1_000_000_000.0;
+
+        if (writeSeconds <= 0 || readSeconds <= 0) {
+            return -1;
+        }
+
+        double writeMbPerSec = sizeMb / writeSeconds;
+        double readMbPerSec  = sizeMb / readSeconds;
+
+        return computeStorageSpeedPct(writeMbPerSec, readMbPerSec);
+    }
+
+    private int computeStorageSpeedPct(double writeMbPerSec, double readMbPerSec) {
+        // Baseline values for a "healthy" modern device.
+        double baselineWrite = 200.0; // MB/s
+        double baselineRead  = 400.0; // MB/s
+
+        double writeRatio = writeMbPerSec / baselineWrite;
+        double readRatio  = readMbPerSec / baselineRead;
+
+        // Clamp ratios at 1.0 max so faster devices don't exceed 100%
+        if (writeRatio > 1.0) writeRatio = 1.0;
+        if (readRatio > 1.0)  readRatio  = 1.0;
+
+        double pct = ((writeRatio + readRatio) / 2.0) * 100.0;
+
+        if (pct < 0) pct = 0;
+        if (pct > 100) pct = 100;
+
+        return (int) Math.round(pct);
+    }
+
+    public RamInfo collectRamInfo() {
+        int pct = calculateRamHealthPct();
+        android.util.Log.d("TestrRAM", "RAM healthPct = " + pct);
+        return new RamInfo(pct);
+    }
+
+    private int calculateRamHealthPct() {
+        ActivityManager am = (ActivityManager) appContext.getSystemService(Context.ACTIVITY_SERVICE);
+        if (am == null) return -1;
+
+        ActivityManager.MemoryInfo memInfo = new ActivityManager.MemoryInfo();
+        am.getMemoryInfo(memInfo);
+
+        long totalBytes = memInfo.totalMem;
+        if (totalBytes <= 0) return -1;
+
+        // Convert to GB
+        double totalGb = totalBytes / (1024.0 * 1024.0 * 1024.0);
+
+
+        long expectedGb = Math.round(totalGb);
+
+        if (expectedGb <= 0) return -1;
+
+        double ratio = totalGb / expectedGb;
+
+        if (ratio > 1.0) ratio = 1.0;
+        if (ratio < 0.0) ratio = 0.0;
+
+        int pct = (int) Math.round(ratio * 100.0);
+        return pct;
     }
 
     private SensorInfo collectSensorInfo(){

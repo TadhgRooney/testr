@@ -1,12 +1,13 @@
 package com.testr.dut.dto;
 
 public class StorageInfo {
-    //Bytes
-    public long internalTotalBytes;
-    public long internalFreeBytes;
-    public long externalTotalBytes;
-    public long externalFreeBytes;
+    // Storage speed as % of baseline (0-100), -1 if not available/failed
+    public int speedPct;
 
-    public double writeSpeedMBps;
-    public double readSpeedMBps;
+    public StorageInfo() {
+    }
+
+    public StorageInfo(int speedPct) {
+        this.speedPct = speedPct;
+    }
 }

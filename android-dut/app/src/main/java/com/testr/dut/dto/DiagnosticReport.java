@@ -1,7 +1,5 @@
 package com.testr.dut.dto;
 
-import java.util.List;
-
 public class DiagnosticReport {
     public String sessionId;
     public String manufacturer;
@@ -11,7 +9,8 @@ public class DiagnosticReport {
     public String securityPatch;
     public BatteryInfo battery;
     public StorageInfo storage;
-    public MemoryCpuInfo memoryCpu;
+    public CpuInfo cpu;
+    public RamInfo ram;
     public SensorInfo sensors;
     public ConnectivityInfo connectivity;
     public CameraInfo cameras;
