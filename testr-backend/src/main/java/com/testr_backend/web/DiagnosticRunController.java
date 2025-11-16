@@ -22,7 +22,9 @@ public class DiagnosticRunController {
                 body.batteryHealth,
                 body.storageSpeedPct,
                 body.cpuPerformancePct,
-                body.ramHealthPct
+                body.ramHealthPct,
+                body.displayTouchPct,
+                body.cameraCheckPct
         );
         return repo.save(run);
     }
