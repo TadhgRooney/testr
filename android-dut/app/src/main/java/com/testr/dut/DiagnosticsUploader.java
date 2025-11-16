@@ -67,7 +67,9 @@ public class DiagnosticsUploader {
                 ? report.ram.ramHealthPct
                 : -1;
 
-
+        //-1 for now, might add camera check and display % later
+        payload.cameraCheckPct = -1;
+        payload.displayTouchPct = -1;
         return payload;
     }
 

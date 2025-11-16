@@ -6,4 +6,6 @@ public class DiagnosticRunPayload {
     public int storageSpeedPct;
     public int cpuPerformancePct;
     public int ramHealthPct;
+    public int displayTouchPct;
+    public int cameraCheckPct;
 }
