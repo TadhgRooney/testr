@@ -12,21 +12,25 @@ public class DiagnosticRun {
 
     private String deviceModel;
     private int batteryHealth;
-    private double storageFreeGb;
-    private double storageTotalGb;
-    private double ramFreeGb;
-    private double ramTotalGb;
+    private int storageSpeedPct;
+    private int cpuPerformancePct;
+    private int ramHealthPct;
+    private int displayTouchPct;
+    private int cameraCheckPct;
+
+
     private LocalDateTime timestamp = LocalDateTime.now();
 
     public DiagnosticRun() {}
 
-    public DiagnosticRun(String deviceModel, int batteryHealth, double storageFreeGb, double storageTotalGb, double ramFreeGb, double ramTotalGb) {
+    public DiagnosticRun(String deviceModel, int batteryHealth, int storageSpeedPct, int cpuPerformancePct, int ramHealthPct, int displayTouchPct, int cameraCheckPct) {
         this.deviceModel = deviceModel;
         this.batteryHealth = batteryHealth;
-        this.storageFreeGb = storageFreeGb;
-        this.storageTotalGb = storageTotalGb;
-        this.ramFreeGb = ramFreeGb;
-        this.ramTotalGb = ramTotalGb;
+        this.storageSpeedPct = storageSpeedPct;
+        this.cpuPerformancePct = cpuPerformancePct;
+        this.ramHealthPct = ramHealthPct;
+        this.displayTouchPct = displayTouchPct;
+        this.cameraCheckPct = cameraCheckPct;
     }
 
     // Getters and setters
@@ -37,19 +41,39 @@ public class DiagnosticRun {
     public int getBatteryHealth() { return batteryHealth; }
     public void setBatteryHealth(int batteryHealth) { this.batteryHealth = batteryHealth; }
 
-    public double getStorageFreeGb() { return storageFreeGb; }
-    public void setStorageFreeGb(double storageFreeGb) { this.storageFreeGb = storageFreeGb; }
-
-    public double getStorageTotalGb() { return storageTotalGb; }
-    public void setStorageTotalGb(double storageTotalGb) { this.storageTotalGb = storageTotalGb; }
-
-    public double getRamFreeGb() { return ramFreeGb; }
-    public void setRamFreeGb(double ramFreeGb) { this.ramFreeGb = ramFreeGb; }
-
-    public double getRamTotalGb() { return ramTotalGb; }
-    public void setRamTotalGb(double ramTotalGb) { this.ramTotalGb = ramTotalGb; }
-
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+
+    public int getCameraCheckPct() {
+        return cameraCheckPct;
+    }
+
+    public void setCameraCheckPct(int cameraCheckPct) {
+        this.cameraCheckPct = cameraCheckPct;
+    }
+
+    public int getDisplayTouchPct() {
+        return displayTouchPct;
+    }
+
+    public void setDisplayTouchPct(int displayTouchPct) {
+        this.displayTouchPct = displayTouchPct;
+    }
+
+    public int getRamHealthPct() {
+        return ramHealthPct;
+    }
+
+    public void setRamHealthPct(int ramHealthPct) {
+        this.ramHealthPct = ramHealthPct;
+    }
+
+    public int getCpuPerformancePct() {
+        return cpuPerformancePct;
+    }
+
+    public void setCpuPerformancePct(int cpuPerformancePct) {
+        this.cpuPerformancePct = cpuPerformancePct;
+    }
 }
 

@@ -1,12 +1,11 @@
-package com.testr_backend.web;
+package com.testr.dut;
 
-public class DiagnosticRunRequest {
+public class DiagnosticRunPayload {
     public String deviceModel;
-    public int batteryHealth; //0-100 = health %, -1 = unknown
+    public int batteryHealth;
     public int storageSpeedPct;
     public int cpuPerformancePct;
     public int ramHealthPct;
     public int displayTouchPct;
     public int cameraCheckPct;
-
 }

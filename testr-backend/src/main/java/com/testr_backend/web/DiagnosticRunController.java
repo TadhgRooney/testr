@@ -20,10 +20,11 @@ public class DiagnosticRunController {
         DiagnosticRun run = new DiagnosticRun(
                 body.deviceModel,
                 body.batteryHealth,
-                body.storageFreeGb,
-                body.storageTotalGb,
-                body.ramFreeGb,
-                body.ramTotalGb
+                body.storageSpeedPct,
+                body.cpuPerformancePct,
+                body.ramHealthPct,
+                body.displayTouchPct,
+                body.cameraCheckPct
         );
         return repo.save(run);
     }

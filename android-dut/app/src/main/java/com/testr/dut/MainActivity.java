@@ -2,25 +2,13 @@ package com.testr.dut;
 
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.TextView;
-
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.testr.dut.dto.DiagnosticReport;
-
-import java.util.UUID;
-
 public class MainActivity extends AppCompatActivity {
-
-    private TextView txtOutput;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,15 +22,30 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    public void getDiagnostics(View v){
-        txtOutput = findViewById(R.id.txtOutput);
-        String sessionId = UUID.randomUUID().toString();
-
+    public void getDiagnostics(View v) {
+        String sessionId = java.util.UUID.randomUUID().toString();
         DiagnosticManager mgr = new DiagnosticManager(this);
-        DiagnosticReport report = mgr.collectAll(sessionId);
+        com.testr.dut.dto.DiagnosticReport report = mgr.collectAll(sessionId);
 
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        txtOutput.setText(gson.toJson(report));
+        DiagnosticsUploader uploader =
+                new DiagnosticsUploader("http://192.168.0.82:8080");//Home
+
+        DiagnosticRunPayload payload = uploader.buildPayloadFromReport(report);
+
+
+        android.widget.Toast.makeText(this, "Uploading diagnostics…", android.widget.Toast.LENGTH_SHORT).show();
+
+        uploader.upload(this, payload, new DiagnosticsUploader.ResultCallback() {
+            @Override public void onSuccess(String resp) {
+                runOnUiThread(() ->
+                        android.widget.Toast.makeText(MainActivity.this, "Uploaded ✓", android.widget.Toast.LENGTH_LONG).show()
+                );
+            }
+            @Override public void onError(Exception e) {
+                runOnUiThread(() ->
+                        android.widget.Toast.makeText(MainActivity.this, "Upload failed: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show()
+                );
+            }
+        });
     }
-
-}
+    }
