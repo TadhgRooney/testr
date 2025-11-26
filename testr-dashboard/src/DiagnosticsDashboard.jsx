@@ -1,22 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function DiagnosticsDashboard() {
-  // no data yet, will replace with data from DB later
-  const runs = [];
-  // State for the search box text.
+  const [runs, setRuns] = useState([]);
   const [searchModel, setSearchModel] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Summary stats (all zero until it's hooked up to backend/DB).
-  const totalDevices = 0;
-  const avgBattery = 0;
-  const avgCpu = 0;
-  const avgStorageSpeed = 0;
+  // Fetch diagnostics from Spring Boot when the component mounts
+  useEffect(() => {
+    fetch('http://localhost:8080/v1/diagnostics')
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch diagnostics');
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setRuns(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []); 
 
-  // nothing to show yet
-  const filteredRuns = []; 
+  const filteredRuns = runs.filter((run) =>
+    run.deviceModel?.toLowerCase().includes(searchModel.toLowerCase())
+  );
 
-  // Placeholder for an overall score per device.
-  const overallScore = () => 0;
+  const totalDevices = runs.length;
+
+  const avgBattery =
+    runs.length > 0
+      ? Math.round(
+          runs.reduce((sum, r) => sum + (r.batteryHealth || 0), 0) / runs.length
+        )
+      : 0;
+
+  const avgCpu =
+    runs.length > 0
+      ? Math.round(
+          runs.reduce((sum, r) => sum + (r.cpuPerformancePct || 0), 0) / runs.length
+        )
+      : 0;
+
+  const avgStorageSpeed =
+    runs.length > 0
+      ? Math.round(
+          runs.reduce((sum, r) => sum + (r.storageSpeedPct || 0), 0) / runs.length
+        )
+      : 0;
+
+  const overallScore = (run) => {
+    const parts = [
+      run.batteryHealth,
+      run.storageSpeedPct,
+      run.cpuPerformancePct,
+      run.ramHealthPct,
+      run.displayTouchPct,
+      run.cameraCheckPct,
+    ].filter((v) => typeof v === 'number');
+
+    if (parts.length === 0) return 0;
+    return Math.round(parts.reduce((a, b) => a + b, 0) / parts.length);
+  };
+
+  if (loading) {
+    return <p className="text-muted">Loading diagnostics…</p>;
+  }
+
+  if (error) {
+    return <p className="text-danger">Error: {error}</p>;
+  }
 
   return (
     <div>
@@ -83,7 +140,7 @@ function DiagnosticsDashboard() {
               <input
                 type="text"
                 className="form-control"
-                placeholder="e.g.  Samsung, Pixel"
+                placeholder="e.g. Samsung, Pixel"
                 value={searchModel}
                 onChange={(e) => setSearchModel(e.target.value)}
               />
@@ -119,17 +176,32 @@ function DiagnosticsDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {/* No data yet */}
-                <tr>
-                  <td colSpan="10" className="text-center text-muted">
-                    No diagnostics loaded yet.
-                  </td>
-                </tr>
+                {filteredRuns.length === 0 ? (
+                  <tr>
+                    <td colSpan="10" className="text-center text-muted">
+                      No diagnostics match your filters.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredRuns.map((run) => (
+                    <tr key={run.id}>
+                      <td>{run.id}</td>
+                      <td>{run.deviceModel}</td>
+                      <td>{run.batteryHealth}</td>
+                      <td>{run.storageSpeedPct}</td>
+                      <td>{run.cpuPerformancePct}</td>
+                      <td>{run.ramHealthPct}</td>
+                      <td>{run.cameraCheckPct}</td>
+                      <td>{run.displayTouchPct}</td>
+                      <td>{overallScore(run)}</td>
+                      <td>{run.createdAt || run.timestamp}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-          <p className="text-muted small mb-0 mt-2">
-          </p>
+          <p className="text-muted small mb-0 mt-2"></p>
         </div>
       </div>
     </div>
@@ -137,4 +209,3 @@ function DiagnosticsDashboard() {
 }
 
 export default DiagnosticsDashboard;
-
