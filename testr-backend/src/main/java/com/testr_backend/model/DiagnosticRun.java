@@ -11,12 +11,12 @@ public class DiagnosticRun {
     private Long id;
 
     private String deviceModel;
-    private int batteryHealth;
-    private int storageSpeedPct;
-    private int cpuPerformancePct;
-    private int ramHealthPct;
-    private int displayTouchPct;
-    private int cameraCheckPct;
+    private Integer batteryHealth;
+    private Integer storageSpeedPct;
+    private Integer cpuPerformancePct;
+    private Integer ramHealthPct;
+    private Integer displayTouchPct;
+    private Integer cameraCheckPct;
 
 
     private LocalDateTime timestamp = LocalDateTime.now();
