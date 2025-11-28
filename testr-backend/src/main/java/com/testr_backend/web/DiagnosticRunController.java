@@ -4,6 +4,8 @@ import com.testr_backend.model.DiagnosticRun;
 import com.testr_backend.repo.DiagnosticRunRepository;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/v1/diagnostics")
 @CrossOrigin(origins = "*")
@@ -15,6 +17,7 @@ public class DiagnosticRunController {
         this.repo = repo;
     }
 
+    //Create a new device
     @PostMapping
     public DiagnosticRun create(@RequestBody DiagnosticRunRequest body){
         DiagnosticRun run = new DiagnosticRun(
@@ -27,5 +30,11 @@ public class DiagnosticRunController {
                 body.cameraCheckPct
         );
         return repo.save(run);
+    }
+
+    //read for react dashboard
+    @GetMapping
+    public List<DiagnosticRun> getAll(){
+        return repo.findAll();
     }
 }
