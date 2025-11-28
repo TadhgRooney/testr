@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
         com.testr.dut.dto.DiagnosticReport report = mgr.collectAll(sessionId);
 
         DiagnosticsUploader uploader =
-                new DiagnosticsUploader("http://192.168.0.82:8080");//Home
+                new DiagnosticsUploader("https://testr-f50n.onrender.com");
 
         DiagnosticRunPayload payload = uploader.buildPayloadFromReport(report);
 
